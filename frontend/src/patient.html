@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>ArogyaBlock | Patient</title>
+    
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+    <link href="assets/css/main.css" rel="stylesheet">
+
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Poppins', sans-serif; }
+        
+        /* Card Styling */
+        .card { border: none; border-radius: 15px; box-shadow: 0 2px 15px rgba(0,0,0,0.04); margin-bottom: 25px; transition: transform 0.2s; }
+        .profile-header { background: linear-gradient(135deg, #1977cc, #0b5ed7); color: white; padding: 25px; border-radius: 15px 15px 0 0; }
+        
+        /* Buttons */
+        .btn-send { background: #1977cc; color: white; padding: 12px; border-radius: 50px; width: 100%; border: none; font-weight: 600; box-shadow: 0 4px 12px rgba(25, 119, 204, 0.3); transition: 0.3s; }
+        .btn-send:hover { background: #1565c0; transform: translateY(-2px); color: white; }
+        .btn-analyze { background: #e7f1ff; color: #0d6efd; border: 1px solid #0d6efd; font-size: 0.8rem; border-radius: 20px; padding: 5px 15px; transition: 0.2s; }
+        .btn-analyze:hover { background: #0d6efd; color: white; }
+
+        /* History Items */
+        .history-card { border-left: 5px solid #1977cc; background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+        .history-date { font-size: 0.8rem; color: #888; position: absolute; top: 15px; right: 20px; }
+        
+        /* Doctor Reply Box */
+        .doctor-reply { background-color: #f1f9f1; border: 1px solid #d1e7dd; border-radius: 10px; padding: 15px; margin-top: 15px; }
+        .doctor-avatar { width: 30px; height: 30px; background: #198754; color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; font-size: 0.8rem; }
+
+        /* AI Modal Styling */
+        .ai-score-circle { width: 80px; height: 80px; border-radius: 50%; background: #e7f1ff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: #0d6efd; border: 5px solid #0d6efd; margin: 0 auto; }
+        .modal-header { border-bottom: none; padding-bottom: 0; }
+        .modal-body { padding: 2rem; }
+        .precaution-item { background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; display: flex; align-items: center; }
+        .precaution-item i { color: #1977cc; margin-right: 10px; }
+    </style>
+</head>
+
+<body>
+
+    <header class="p-3 bg-white shadow-sm mb-4 sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h3 style="color: #1977cc; margin:0; font-weight:700;">ArogyaBlock</h3>
+            <a href="./index.html" class="btn btn-outline-danger btn-sm rounded-pill px-4">Logout</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                
+                <div class="card">
+                    <div class="profile-header d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div style="background: rgba(255,255,255,0.2); width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:15px;">
+                                <i class="fas fa-user text-white fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="m-0" id="name">Loading...</h4>
+                                <small style="opacity: 0.8;">Wallet: <span id="accountAddress">...</span></small>
+                            </div>
+                        </div>
+                        <button class="btn btn-light text-primary fw-bold btn-sm shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#consultCollapse">
+                            <i class="fas fa-plus-circle me-1"></i> New Request
+                        </button>
+                    </div>
+
+                    <div class="collapse show" id="consultCollapse">
+                        <div class="card-body p-4">
+                            <form id="consultForm" onsubmit="event.preventDefault();">
+                                <div class="mb-4">
+                                    <label class="fw-bold text-secondary mb-2 small text-uppercase">Select Doctor</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fas fa-user-md text-primary"></i></span>
+                                        <select class="form-select" id="doctorSelect" required>
+                                            <option value="" selected disabled>-- Choose a Specialist --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="fw-bold text-secondary mb-2 small text-uppercase">Describe Symptoms</label>
+                                    <div class="row g-2">
+                                        <div class="col-6"><select class="form-select sym-dropdown" id="symp1"><option disabled selected>Primary Symptom</option></select></div>
+                                        <div class="col-6"><select class="form-select sym-dropdown" id="symp2"><option disabled selected>Symptom 2</option></select></div>
+                                        <div class="col-6"><select class="form-select sym-dropdown" id="symp3"><option disabled selected>Symptom 3</option></select></div>
+                                        <div class="col-6"><select class="form-select sym-dropdown" id="symp4"><option disabled selected>Symptom 4</option></select></div>
+                                    </div>
+                                    <div class="mt-2 text-end">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="checkAiPrediction()">
+                                            <i class="fas fa-brain me-1"></i> Check AI Prediction
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button class="btn-send" onclick="sendToDoctor()">
+                                    <i class="fas fa-paper-plane me-2"></i> Submit to Doctor
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 mt-5">
+                    <h5 class="fw-bold text-secondary m-0">Submission History</h5>
+                    <select class="form-select form-select-sm w-auto shadow-sm" id="historyFilter" onchange="renderHistory()">
+                        <option value="all">All Doctors</option>
+                    </select>
+                </div>
+
+                <div id="historyList">
+                    <div class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><br>Loading history...</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="aiModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-robot me-2"></i>AI Health Analysis</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <div class="ai-score-circle mb-2" id="aiConfidence">--%</div>
+                        <h4 class="fw-bold text-dark mb-0" id="aiDisease">Analyzing...</h4>
+                        <small class="text-muted">Predicted Condition</small>
+                    </div>
+                    
+                    <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-shield-alt me-2"></i>Recommended Precautions</h6>
+                    <div id="aiPrecautions">
+                        </div>
+
+                    <div class="mt-4 p-3 bg-light rounded-3 border">
+                        <h6 class="fw-bold text-secondary mb-2"><i class="fas fa-apple-alt me-2"></i>Dietary Advice</h6>
+                        <p class="mb-0 small text-muted" id="aiDiet">--</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4">
+                    <button type="button" class="btn btn-primary rounded-pill px-4" data-bs-dismiss="modal">Close Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.10.0/web3.min.js"></script>
+    <script src="https://unpkg.com/ipfs-api/dist/index.min.js" crossorigin="anonymous"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        var ipfs = window.IpfsApi('localhost', '5001');
+        var key = "";
+        var medicalRecords = []; 
+        var aiModal; // Bootstrap modal instance
+
+        $(window).on("load", async function () {
+            aiModal = new bootstrap.Modal(document.getElementById('aiModal'));
+            await connect();
+            const accounts = await web3.eth.getAccounts();
+            key = accounts[0];
+            $("#accountAddress").text(key.substring(0, 10) + "...");
+
+            // Load Patient Data
+            try {
+                const p = await contractInstance.methods.get_patient(key).call();
+                $("#name").text(p[0]);
+                if(p[4]) loadRecords(p[4]); 
+                else $("#historyList").html('<div class="text-center text-muted py-4">No submissions yet.</div>');
+            } catch(e) { console.log(e); }
+
+            loadDoctors();
+            loadSymptoms();
+        });
+
+        async function loadDoctors() {
+            const list = await contractInstance.methods.get_doctor_list().call();
+            for(let dAddr of list) {
+                const d = await contractInstance.methods.get_doctor(dAddr).call();
+                $("#doctorSelect").append(new Option(`Dr. ${d[0]}`, dAddr));
+                // Add unique doctors to filter
+                if($("#historyFilter option[value='"+dAddr+"']").length === 0){
+                    $("#historyFilter").append(new Option(`Dr. ${d[0]}`, dAddr));
+                }
+            }
+        }
+
+        async function loadSymptoms() {
+            try {
+                const res = await fetch("http://127.0.0.1:8000/get_symptoms");
+                const data = await res.json();
+                $(".sym-dropdown").each(function() {
+                    data.symptoms.forEach(s => $(this).append(new Option(s, s)));
+                });
+            } catch(e) { console.log("API Error", e); }
+        }
+
+        function loadRecords(hash) {
+            $.get("http://localhost:8080/ipfs/" + hash, function (data) {
+                try {
+                    // Handle IPFS data (could be object or string)
+                    if(typeof data === 'object') medicalRecords = data;
+                    else medicalRecords = JSON.parse(data);
+                } catch(e) { medicalRecords = []; }
+                renderHistory();
+            });
+        }
+
+        function renderHistory() {
+            const filterAddr = $("#historyFilter").val();
+            const container = $("#historyList");
+            container.empty();
+
+            if(medicalRecords.length === 0) {
+                container.html('<div class="text-center text-muted py-4">No records found.</div>');
+                return;
+            }
+
+            const filtered = medicalRecords.filter(r => filterAddr === 'all' || r.doctorAddr === filterAddr).reverse();
+
+            if(filtered.length === 0) {
+                container.html('<div class="text-center text-muted py-4">No submissions for this doctor.</div>');
+                return;
+            }
+
+            filtered.forEach((rec) => {
+                const docName = rec.doctorName || "Unknown";
+                const symptoms = rec.symptoms ? rec.symptoms.join(", ") : "None";
+                const date = rec.date || "Date Unknown";
+                
+                // Doctor Reply UI
+                let replyHtml = '';
+                if(rec.doctorReply) {
+                    replyHtml = `
+                        <div class="doctor-reply">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="doctor-avatar"><i class="fas fa-user-md"></i></span>
+                                <strong class="text-success">Dr. ${docName} Replied:</strong>
+                            </div>
+                            <p class="mb-1 text-dark">${rec.doctorReply}</p>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success">Diagnosis: ${rec.diagnosis || 'General Checkup'}</span>
+                        </div>
+                    `;
+                } else {
+                    replyHtml = `<div class="mt-3 small text-muted fst-italic"><i class="far fa-clock me-1"></i> Awaiting review from Dr. ${docName}...</div>`;
+                }
+
+                const html = `
+                    <div class="history-card">
+                        <div class="history-date">${date}</div>
+                        <h5 class="fw-bold text-primary mb-1">To: Dr. ${docName}</h5>
+                        <p class="text-muted small mb-3">ID: ${rec.doctorAddr.substring(0,8)}...</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+                            <span class="small text-dark"><strong>Symptoms:</strong> ${symptoms}</span>
+                            <button class="btn-analyze" onclick='checkAiForHistory(${JSON.stringify(rec.symptoms)})'>
+                                <i class="fas fa-brain me-1"></i> Check AI
+                            </button>
+                        </div>
+
+                        ${replyHtml}
+                    </div>
+                `;
+                container.append(html);
+            });
+        }
+
+        // --- Core Logic ---
+
+        async function sendToDoctor() {
+            const docAddr = $("#doctorSelect").val();
+            const docName = $("#doctorSelect option:selected").text();
+            
+            let syms = [];
+            $(".sym-dropdown").each(function() { if($(this).val()) syms.push($(this).val()); });
+
+            if(!docAddr) return alert("Select a doctor");
+            if(syms.length == 0) return alert("Select symptoms");
+
+            const newRecord = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                doctorName: docName.replace("Dr. ", ""),
+                doctorAddr: docAddr,
+                symptoms: syms,
+                doctorReply: null,
+                diagnosis: null
+            };
+
+            medicalRecords.push(newRecord);
+            const buffer = ipfs.Buffer.from(JSON.stringify(medicalRecords));
+
+            ipfs.files.add(buffer, async (err, res) => {
+                if(err) return alert("IPFS Failed");
+                const hash = res[0].hash;
+
+                try {
+                    await contractInstance.methods.set_hash_public(key, hash).send({from: key, gas: 1000000});
+                    
+                    // Auto-Grant Access
+                    const accessList = await contractInstance.methods.get_accessed_doctorlist_for_patient(key).call();
+                    if(!accessList.includes(docAddr)) {
+                        await contractInstance.methods.permit_access(docAddr)
+                            .send({from: key, gas: 1000000, value: web3.utils.toWei("2", "ether")});
+                    }
+
+                    alert("Submitted Successfully!");
+                    renderHistory();
+                    $("#consultCollapse").collapse('hide');
+                } catch(e) { alert("Transaction Failed"); console.error(e); }
+            });
+        }
+
+        // --- AI Visualization ---
+
+        async function fetchAiData(symptoms) {
+            try {
+                const res = await fetch("http://127.0.0.1:8000/predict", {
+                    method: "POST", 
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({symptoms: symptoms})
+                });
+                return await res.json();
+            } catch(e) { return null; }
+        }
+
+        async function showAiModal(symptoms) {
+            if(!symptoms || symptoms.length == 0) return alert("No symptoms to analyze.");
+            
+            // Show loading state in modal
+            $("#aiDisease").text("Analyzing...");
+            $("#aiConfidence").text("--");
+            $("#aiPrecautions").html("");
+            $("#aiDiet").text("...");
+            aiModal.show();
+
+            const data = await fetchAiData(symptoms);
+            
+            if(data) {
+                $("#aiDisease").text(data.predicted_disease);
+                const conf = (data.predicted_probability * 100).toFixed(0);
+                $("#aiConfidence").text(conf + "%");
+                
+                // Color code confidence
+                const circle = $(".ai-score-circle");
+                if(conf > 80) circle.css({"border-color": "#198754", "color": "#198754"});
+                else if(conf > 50) circle.css({"border-color": "#fd7e14", "color": "#fd7e14"});
+                else circle.css({"border-color": "#dc3545", "color": "#dc3545"});
+
+                let precHtml = "";
+                data.precautions.forEach(p => {
+                    precHtml += `<div class="precaution-item"><i class="fas fa-check-circle"></i> ${p}</div>`;
+                });
+                $("#aiPrecautions").html(precHtml);
+                $("#aiDiet").text(data.diet);
+            } else {
+                $("#aiDisease").text("Service Error");
+                $("#aiPrecautions").html("<span class='text-danger'>Could not connect to AI backend.</span>");
+            }
+        }
+
+        // Wrapper functions
+        function checkAiPrediction() {
+            let syms = [];
+            $(".sym-dropdown").each(function() { if($(this).val()) syms.push($(this).val()); });
+            showAiModal(syms);
+        }
+
+        function checkAiForHistory(symptoms) {
+            showAiModal(symptoms);
+        }
+
+    </script>
+</body>
+</html>

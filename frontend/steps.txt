@@ -1,0 +1,12 @@
+winget install -e --id OpenJS.NodeJS.LTS   
+npm install
+
+
+https://archive.trufflesuite.com/ganache/
+https://dist.ipfs.tech/#kubo
+
+npm install -g lite-server
+truffle compile
+truffle migrate
+
+https://metamask.io/

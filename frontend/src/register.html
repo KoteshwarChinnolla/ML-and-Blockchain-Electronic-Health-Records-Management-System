@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>ArogyaBlock | Register</title>
+  <meta content="" name="description">
+  <meta content="" name="keywords">
+
+  <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.10.0/web3.min.js"></script>
+  <script src="https://unpkg.com/ipfs-api/dist/index.min.js" crossorigin="anonymous"></script>
+
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header sticky-top">
+    <div class="branding d-flex align-items-center">
+      <div class="container position-relative d-flex align-items-center justify-content-between">
+        <a href="index.html" class="logo d-flex align-items-center me-auto">
+          <h1 class="sitename">ArogyaBlock</h1>
+        </a>
+        <nav id="navmenu" class="navmenu">
+          <ul>
+            <li><a href="./index.html">Login</a></li>
+            <li><a href="./register.html" class="active">Register</a></li>
+          </ul>
+          <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <main class="main">
+
+    <section id="register" class="register section">
+      <div class="container" data-aos="fade-up">
+        <div class="section-title">
+          <h2>Register</h2>
+          <p>Please enter your details to register.</p>
+        </div>
+
+        <div class="row justify-content-center">
+          <div class="col-lg-6">
+
+            <div class="alert alert-warning" id="warning-alert" style="display: none;">
+              <strong>Warning!</strong> Invalid public key or browser not connected.
+            </div>
+
+            <div class="alert alert-info" id="info-alert" style="display: none;">
+              <strong>Info!</strong> User already registered. Please check your details.
+            </div>
+            <form id="registerForm" class="php-email-form">
+              <div class="form-group mt-3">
+                <label for="name">Name:</label>
+                <input type="text" name="Name" class="form-control" id="name" placeholder="Enter your name" required autofocus>
+              </div>
+              <div class="form-group mt-3">
+                <label for="age">Age:</label>
+                <input type="number" name="Age" class="form-control" id="age" placeholder="Enter your age" required>
+              </div>
+              <div class="form-group mt-3">
+                <label for="designation">Registering as:</label>
+                <select name="Designation" id="designation" class="form-select" required>
+                  <option value="" disabled selected>-- Please Select --</option>
+                  <option value="0">Patient</option>
+                  <option value="1">Doctor</option>
+                </select>
+              </div>
+              <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary">Register</button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </section>
+    </main>
+
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center">
+    <i class="bi bi-arrow-up-short"></i>
+  </a>
+
+  <div id="preloader"></div>
+
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+  <script src="assets/js/main.js"></script>
+
+  <script src="js/jquery.js"></script>
+
+  <script src="js/app.js"></script>
+  
+  <script>
+    // Initialize IPFS
+    const ipfs = window.IpfsApi('localhost', '5001');
+
+    $(document).ready(function() {
+        // Handle form submission manually to support async/await
+        $("#registerForm").on('submit', function(e) {
+            e.preventDefault(); // Prevent default form submit
+            addAgent();
+        });
+    });
+
+    async function addAgent() {
+        const name = $("#name").val();
+        const age = $("#age").val();
+        let designation = $("#designation").val();
+        designation = parseInt(designation);
+
+        try {
+            // 1. Get Accounts (Modern Web3)
+            const accounts = await web3.eth.getAccounts();
+            const account = accounts[0];
+            
+            if (!account) {
+                alert("No account found. Please connect MetaMask.");
+                return;
+            }
+
+            console.log("Current Account:", account);
+
+            // 2. Check if already registered (Modern Contract Call)
+            // Note: .methods.methodName().call()
+            const PatientList = await contractInstance.methods.get_patient_list().call();
+            const DoctorList = await contractInstance.methods.get_doctor_list().call();
+
+            if (PatientList.includes(account) || DoctorList.includes(account)) {
+                $("#info-alert").show();
+                $("#warning-alert").hide();
+                return;
+            }
+
+            $("#warning-alert").hide();
+            $("#info-alert").hide();
+
+            // 3. Prepare IPFS Data
+            const userData = `Name: ${name}\nAge: ${age}\nPublic Key: ${account}\nDesignation: ${designation === 0 ? 'Patient' : 'Doctor'}`;
+            
+            // Use Buffer.from for compatibility with ipfs-api
+            const buffer = ipfs.Buffer.from(userData);
+
+            // 4. Upload to IPFS
+            ipfs.files.add(buffer, async (error, result) => {
+                if (error) {
+                    console.error("IPFS Error:", error);
+                    alert("IPFS upload failed. Is your IPFS daemon running?");
+                    return;
+                }
+
+                const ipfsHash = result[0].hash;
+                console.log("IPFS Hash:", ipfsHash);
+
+                // 5. Send Transaction to Blockchain (Modern Contract Send)
+                // Note: .methods.methodName(args).send({ from: ... })
+                try {
+                    await contractInstance.methods.add_agent(name, age, designation, ipfsHash)
+                        .send({ from: account });
+                    
+                    alert("Registration Successful!");
+
+                    // Redirect based on designation
+                    if (designation === 0) {
+                        window.location.href = "./patient.html?key=" + account;
+                    } else if (designation === 1) {
+                        window.location.href = "./doctor.html?key=" + account;
+                    }
+                } catch (txError) {
+                    console.error("Transaction failed:", txError);
+                    alert("Transaction failed: " + txError.message);
+                }
+            });
+
+        } catch (err) {
+            console.error("Error in addAgent:", err);
+            alert("An error occurred. Check console for details.");
+        }
+    }
+  </script>
+
+</body>
+</html>
+

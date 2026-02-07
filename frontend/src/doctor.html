@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>ArogyaBlock | Doctor Dashboard</title>
+    
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+    <link href="assets/css/main.css" rel="stylesheet">
+
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Poppins', sans-serif; }
+
+        /* Doctor Profile Card */
+        .doctor-card {
+            background: linear-gradient(135deg, #1977cc 0%, #0d5ca0 100%);
+            color: white;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 4px 20px rgba(25, 119, 204, 0.2);
+            margin-bottom: 30px;
+        }
+
+        /* Patient List Card */
+        .card-main {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: white;
+        }
+
+        .card-header-custom {
+            background: white;
+            border-bottom: 1px solid #eee;
+            padding: 20px;
+            font-weight: 600;
+            color: #2c4964;
+            border-radius: 12px 12px 0 0;
+        }
+
+        /* Consultation Item Styling */
+        .consult-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .consult-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .consult-body { padding: 20px; }
+
+        .symptom-tag {
+            background: #e8f4fd;
+            color: #1977cc;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 5px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        /* Doctor Reply Form */
+        .reply-section {
+            background: #fdfdfd;
+            border-top: 1px solid #eee;
+            padding: 20px;
+        }
+
+        /* Completed Diagnosis View */
+        .diagnosis-view {
+            background: #f1f9f1;
+            border: 1px solid #d1e7dd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        /* AI Box */
+        .ai-result {
+            display: none;
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            color: #664d03;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="p-3 bg-white shadow-sm mb-4 sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h3 style="color: #1977cc; margin:0; font-weight:700;">ArogyaBlock</h3>
+            <a href="./index.html" class="btn btn-outline-danger btn-sm rounded-pill px-4">Logout</a>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <div class="card doctor-card">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div style="background: rgba(255,255,255,0.2); width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:20px;">
+                    <i class="fas fa-user-md fa-2x"></i>
+                </div>
+                <div>
+                    <h4 class="mb-0">Dr. <span id="docName">Loading...</span></h4>
+                    <small style="opacity: 0.8;">Wallet: <span id="docAddr" class="font-monospace">...</span></small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-main">
+            <div class="card-header-custom d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-procedures me-2 text-primary"></i> Patient Consultations</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="patientTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Patient Name</th>
+                            <th>Public Key</th>
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.10.0/web3.min.js"></script>
+    <script src="https://unpkg.com/ipfs-api/dist/index.min.js" crossorigin="anonymous"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        var ipfs = window.IpfsApi('localhost', '5001');
+        var key = "";
+        var diseasesList = []; // Fetched from API
+        var currentPatientRecords = []; // Temp storage for the open patient
+
+        $(window).on("load", async function() {
+            await connect();
+            const accounts = await web3.eth.getAccounts();
+            key = accounts[0];
+            $("#docAddr").text(key.substring(0,12) + "...");
+
+            // 1. Get Doctor Info
+            try {
+                const docInfo = await contractInstance.methods.get_doctor(key).call();
+                $("#docName").text(docInfo[0]);
+            } catch(e) {}
+
+            // 2. Fetch Diseases for Dropdown
+            try {
+                const res = await fetch("http://127.0.0.1:8000/get_diseases");
+                const data = await res.json();
+                diseasesList = data.diseases;
+            } catch(e) { console.error("API Error", e); }
+
+            // 3. Load Patients
+            loadPatients();
+        });
+
+        async function loadPatients() {
+            try {
+                const patients = await contractInstance.methods.get_accessed_patientlist_for_doctor(key).call();
+                const tbody = $("#patientTable tbody");
+                tbody.empty();
+
+                if(patients.length === 0) {
+                    tbody.html('<tr><td colspan="3" class="text-center p-4 text-muted">No pending consultations.</td></tr>');
+                    return;
+                }
+
+                for(let pAddr of patients) {
+                    const pInfo = await contractInstance.methods.get_patient(pAddr).call();
+                    const row = `
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">${pInfo[0]}</td>
+                            <td class="font-monospace small text-muted">${pAddr}</td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="viewRecords(this, '${pAddr}', '${pInfo[0]}')">
+                                    View Consultations
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // --- Logic: View & Parse Records ---
+        async function viewRecords(btn, pAddr, pName) {
+            const tr = $(btn).closest("tr");
+            
+            // Toggle Logic
+            if(tr.next().hasClass("detail-row")) {
+                tr.next().remove();
+                $(btn).html('View Consultations').removeClass('active');
+                return;
+            }
+
+            $(btn).html('<i class="fas fa-times"></i> Close').addClass('active');
+
+            // Fetch Hash
+            const hash = await contractInstance.methods.get_hash(pAddr).call();
+            if(!hash) return alert("No records found.");
+
+            // Fetch IPFS Data
+            $.get("http://localhost:8080/ipfs/" + hash, function(data) {
+                // Handle JSON vs Old String
+                let records = [];
+                try {
+                    if(typeof data === 'object') records = data;
+                    else records = JSON.parse(data);
+                } catch(e) {
+                    alert("Legacy data format detected. Cannot parse JSON.");
+                    return;
+                }
+
+                // Filter for this Doctor
+                // Note: We filter by doctorAddr stored in the record to show only relevant consults
+                const myRecords = records.filter(r => r.doctorAddr.toLowerCase() === key.toLowerCase()).reverse();
+
+                // Build HTML
+                let html = `<td colspan="3" class="bg-light p-4">`;
+                
+                if(myRecords.length === 0) {
+                    html += `<div class="text-center text-muted">No consultations sent to you by ${pName}.</div>`;
+                } else {
+                    myRecords.forEach((rec) => {
+                        const date = rec.date || "Unknown Date";
+                        const symHtml = rec.symptoms.map(s => `<span class="symptom-tag">${s}</span>`).join("");
+                        
+                        // Check if already diagnosed
+                        const isDone = rec.doctorReply ? true : false;
+
+                        // Generate Options for Select
+                        let diseaseOptions = `<option value="" selected disabled>Select Diagnosis</option>`;
+                        diseasesList.forEach(d => {
+                            // Pre-select if already diagnosed
+                            const selected = (rec.diagnosis === d) ? "selected" : "";
+                            diseaseOptions += `<option value="${d}" ${selected}>${d}</option>`;
+                        });
+
+                        html += `
+                        <div class="consult-card">
+                            <div class="consult-header">
+                                <strong><i class="far fa-calendar-alt me-2"></i> ${date}</strong>
+                                <span class="badge ${isDone ? 'bg-success' : 'bg-warning text-dark'}">${isDone ? 'Completed' : 'Pending Action'}</span>
+                            </div>
+                            <div class="consult-body">
+                                <div class="mb-3">
+                                    <small class="text-muted text-uppercase fw-bold">Reported Symptoms</small><br>
+                                    <div class="mt-1">${symHtml}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted text-uppercase fw-bold">Pain Intensity</small>: 
+                                    <span class="text-dark fw-bold">${rec.intensity || 'Not specified'}</span>
+                                </div>
+
+                                <button class="btn btn-sm btn-info text-white mb-2" onclick='checkAi(this, ${JSON.stringify(rec.symptoms)})'>
+                                    <i class="fas fa-robot me-1"></i> Ask AI Opinion
+                                </button>
+                                <div class="ai-result"></div>
+
+                                ${isDone ? 
+                                    // READ ONLY VIEW
+                                    `<div class="diagnosis-view">
+                                        <h6 class="text-success mb-2"><i class="fas fa-check-circle me-1"></i> Diagnosis Sent</h6>
+                                        <p class="mb-1"><strong>Disease:</strong> ${rec.diagnosis}</p>
+                                        <p class="mb-0"><strong>Note:</strong> ${rec.doctorReply}</p>
+                                    </div>` 
+                                    : 
+                                    // EDITABLE FORM
+                                    `<div class="reply-section mt-3">
+                                        <h6 class="text-primary mb-3"><i class="fas fa-user-md me-1"></i> Doctor's Assessment</h6>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <select class="form-select" id="diag_${rec.id}">${diseaseOptions}</select>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <input type="text" class="form-control" id="note_${rec.id}" placeholder="Short note or medication...">
+                                            </div>
+                                            <div class="col-12 text-end">
+                                                <button class="btn btn-primary" onclick="submitDiagnosis('${pAddr}', ${rec.id})">
+                                                    Submit Diagnosis
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>`
+                                }
+                            </div>
+                        </div>`;
+                    });
+                }
+                html += `</td>`;
+
+                // Insert Row
+                const newRow = $(`<tr class="detail-row">${html}</tr>`);
+                newRow.data('fullRecords', records); // Store full data on the DOM element for saving later
+                tr.after(newRow);
+            });
+        }
+
+        // --- Logic: AI Check ---
+        async function checkAi(btn, symptoms) {
+            const resultBox = $(btn).next(".ai-result");
+            resultBox.html('<i class="fas fa-spinner fa-spin"></i> Analyzing...').show();
+
+            try {
+                const res = await fetch("http://127.0.0.1:8000/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ symptoms: symptoms })
+                });
+                const data = await res.json();
+                
+                resultBox.html(`
+                    <strong>AI Suggestion:</strong> ${data.predicted_disease} <span class="badge bg-secondary">${(data.predicted_probability*100).toFixed(0)}% Conf.</span><br>
+                    <small>Rec. Precautions: ${data.precautions.slice(0,2).join(", ")}</small>
+                `);
+            } catch(e) {
+                resultBox.html('<span class="text-danger">AI Service Unavailable</span>');
+            }
+        }
+
+        // --- Logic: Submit Diagnosis ---
+        async function submitDiagnosis(pAddr, recordId) {
+            const diag = $(`#diag_${recordId}`).val();
+            const note = $(`#note_${recordId}`).val();
+
+            if(!diag) return alert("Please select a diagnosis.");
+
+            // 1. Retrieve full record set from DOM storage
+            const tr = $(`#diag_${recordId}`).closest("tr.detail-row");
+            let allRecords = tr.data('fullRecords');
+
+            // 2. Find and Update the specific record
+            const recordIndex = allRecords.findIndex(r => r.id === recordId);
+            if(recordIndex === -1) return alert("Record not found error.");
+
+            allRecords[recordIndex].diagnosis = diag;
+            allRecords[recordIndex].doctorReply = note;
+
+            // 3. Prepare Buffer
+            const buffer = ipfs.Buffer.from(JSON.stringify(allRecords));
+
+            // 4. Upload & Blockchain
+            ipfs.files.add(buffer, async (err, res) => {
+                if(err) return alert("IPFS Error");
+                const newHash = res[0].hash;
+
+                try {
+                    // We treat the diagnosis ID as the index in the diseases list for the contract event, 
+                    // or just send 0 if the contract needs a uint. 
+                    // Your contract expects: insurance_claimm(paddr, uint diagnosis_id, string hash)
+                    // We need the index of the disease in the global list.
+                    const diagInt = diseasesList.indexOf(diag) > -1 ? diseasesList.indexOf(diag) : 0;
+
+                    await contractInstance.methods.insurance_claimm(pAddr, diagInt, newHash)
+                        .send({from: key, gas: 1000000});
+                    
+                    alert("Diagnosis Submitted Successfully!");
+                    
+                    // Refresh view
+                    const btn = tr.prev().find("button");
+                    tr.remove(); // Close
+                    btn.click(); // Re-open to refresh data
+                    
+                } catch(e) {
+                    console.error(e);
+                    alert("Transaction Failed.");
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
